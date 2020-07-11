@@ -24,12 +24,14 @@ test()
   std::cout << std::sqrt(std::abs(a)) << std::endl;
   std::cout << std::min(a, b) << std::endl;
   std::cout << std::max(a, b) << std::endl;
+  std::cout << std::endl;
 }
 
 int
 main()
 {
   test<float, 4>();
+  test<double, 2>();
 
   return 0;
 }
