@@ -5,18 +5,21 @@
 
 namespace dealii
 {
+  template <typename Number, std::size_t width>
   class VectorizedArray;
 }
 
 namespace std
 {
-  inline dealii::VectorizedArray
-  sqrt(const dealii::VectorizedArray &x);
+  template <typename Number, std::size_t width>
+  inline dealii::VectorizedArray<Number, width>
+  sqrt(const dealii::VectorizedArray<Number, width> &x);
 }
 
 namespace dealii
 {
-  class VectorizedArray
+  template <>
+  class VectorizedArray<float, 4>
   {
   public:
     using value_type = float;
@@ -30,7 +33,7 @@ namespace dealii
       this->operator=(scalar);
     }
 
-    VectorizedArray &
+    VectorizedArray<value_type, n_array_elements> &
     operator=(const double x)
     {
       data = vld1q_dup_f32(&x);
@@ -42,22 +45,27 @@ namespace dealii
       return *(reinterpret_cast<value_type *>(&data) + comp);
     }
 
-    VectorizedArray &
-    operator+=(const VectorizedArray &vec)
+    const value_type &operator[](const unsigned int comp) const
+    {
+      return *(reinterpret_cast<const value_type *>(&data) + comp);
+    }
+
+    VectorizedArray<value_type, n_array_elements> &
+    operator+=(const VectorizedArray<value_type, n_array_elements> &vec)
     {
       data = vaddq_f32(data, vec.data);
       return *this;
     }
 
-    VectorizedArray &
-    operator-=(const VectorizedArray &vec)
+    VectorizedArray<value_type, n_array_elements> &
+    operator-=(const VectorizedArray<value_type, n_array_elements> &vec)
     {
       data = vsubq_f32(data, vec.data);
       return *this;
     }
 
-    VectorizedArray &
-    operator*=(const VectorizedArray &vec)
+    VectorizedArray<value_type, n_array_elements> &
+    operator*=(const VectorizedArray<value_type, n_array_elements> &vec)
     {
       data = vmulq_f32(data, vec.data);
       return *this;
@@ -102,50 +110,101 @@ namespace dealii
     mutable float32x4_t data;
 
   private:
-    VectorizedArray
+    VectorizedArray<value_type, n_array_elements>
     get_sqrt() const
     {
-      VectorizedArray res;
+      VectorizedArray<value_type, n_array_elements> res;
       res.data = vsqrtq_f32(data);
       return res;
     }
 
-    VectorizedArray
+    VectorizedArray<value_type, n_array_elements>
     get_abs() const
     {
-      VectorizedArray res;
+      VectorizedArray<value_type, n_array_elements> res;
       res.data = vabsq_f32(data);
       return res;
     }
 
-    VectorizedArray
-    get_max(const VectorizedArray &other) const
+    VectorizedArray<value_type, n_array_elements>
+    get_max(const VectorizedArray<value_type, n_array_elements> &other) const
     {
-      VectorizedArray res;
+      VectorizedArray<value_type, n_array_elements> res;
       res.data = vmaxq_f32(data, other.data);
       return res;
     }
 
-    VectorizedArray
-    get_min(const VectorizedArray &other) const
+    VectorizedArray<value_type, n_array_elements>
+    get_min(const VectorizedArray<value_type, n_array_elements> &other) const
     {
-      VectorizedArray res;
+      VectorizedArray<value_type, n_array_elements> res;
       res.data = vminq_f32(data, other.data);
       return res;
     }
 
-    friend VectorizedArray
-    std::sqrt(const VectorizedArray &);
+    template <typename Number2, std::size_t width2>
+    friend VectorizedArray<Number2, width2>
+    std::sqrt(const VectorizedArray<Number2, width2> &);
+
+    template <typename Number2, std::size_t width2>
+    friend VectorizedArray<Number2, width2>
+    std::abs(const VectorizedArray<Number2, width2> &);
+
+    template <typename Number2, std::size_t width2>
+    friend VectorizedArray<Number2, width2>
+    std::max(const VectorizedArray<Number2, width2> &,
+             const VectorizedArray<Number2, width2> &);
+
+    template <typename Number2, std::size_t width2>
+    friend VectorizedArray<Number2, width2>
+    std::min(const VectorizedArray<Number2, width2> &,
+             const VectorizedArray<Number2, width2> &);
   };
+
+  template <typename Number, std::size_t width>
+  inline std::ostream &
+  operator<<(std::ostream &out, const VectorizedArray<Number, width> &p)
+  {
+    for (unsigned int i = 0; i < width - 1; ++i)
+      out << p[i] << ' ';
+    out << p[width - 1];
+
+    return out;
+  }
 
 } // namespace dealii
 
 namespace std
 {
-  inline dealii::VectorizedArray
-  sqrt(const dealii::VectorizedArray &x)
+  template <typename Number, std::size_t width>
+  inline dealii::VectorizedArray<Number, width>
+  sqrt(const dealii::VectorizedArray<Number, width> &x)
   {
     return x.get_sqrt();
   }
+
+  template <typename Number, std::size_t width>
+  inline dealii::VectorizedArray<Number, width>
+  abs(const dealii::VectorizedArray<Number, width> &x)
+  {
+    return x.get_abs();
+  }
+
+  template <typename Number, std::size_t width>
+  inline dealii::VectorizedArray<Number, width>
+  max(const dealii::VectorizedArray<Number, width> &x,
+      const dealii::VectorizedArray<Number, width> &y)
+  {
+    return x.get_max(y);
+  }
+
+  template <typename Number, std::size_t width>
+  inline dealii::VectorizedArray<Number, width>
+  min(const dealii::VectorizedArray<Number, width> &x,
+      const dealii::VectorizedArray<Number, width> &y)
+  {
+    return x.get_min(y);
+  }
+
 
 } // namespace std
